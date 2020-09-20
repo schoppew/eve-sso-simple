@@ -88,50 +88,64 @@ module.exports = {
         });
     },
 
+    
     refreshToken: function (setup, req, res, callback) {
-        request(
-            {
-                url: 'https://login.eveonline.com/oauth/token',
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Basic ' + new Buffer(setup.client_id + ':' + setup.client_secret).toString('base64'),
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Host': 'login.eveonline.com'
-                },
-                body: qs.stringify({
-                    "grant_type": "refresh_token",
-                    "refresh_token": setup.code
-                })
-            }, function (tokenErr, tokenRes, tokenBody) {
-                console.log('tokenres: ' + tokenRes);
-                console.log('tokenBody: ' + tokenBody);
-                console.log('tokenErr: ' + tokenErr);
 
-                if (tokenRes && (tokenRes.statusCode === 200 || tokenRes.statusCode === 201)) {
 
-                    accessToken = JSON.parse(tokenBody);
+        return new Promise((resolve, reject) => {
 
-                    request(
-                        {
-                            url: 'https://login.eveonline.com/oauth/verify',
-                            method: 'GET',
-                            headers: {
-                                'User-Agent': req.headers['user-agent'],
-                                'Authorization': accessToken.token_type + ' ' + accessToken.access_token,
-                                'Host': 'login.eveonline.com'
-                            }
-                        }, function (charErr, charRes, charBody) {
+            if (req.query.code != null) {
 
-                            if (charRes && (charRes.statusCode === 200 || charRes.statusCode === 201)) {
+                request(
+                    {
+                        url: 'https://login.eveonline.com/oauth/token',
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Basic ' + new Buffer(setup.client_id + ':' + setup.client_secret).toString('base64'),
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Host': 'login.eveonline.com'
+                        },
+                        body: qs.stringify({
+                            "grant_type": "refresh_token",
+                            "refresh_token": setup.code
+                        })
+                    }, function (tokenErr, tokenRes, tokenBody) {
+                        console.log('tokenres: ' + tokenRes);
+                        console.log('tokenBody: ' + tokenBody);
+                        console.log('tokenErr: ' + tokenErr);
 
-                                charToken = JSON.parse(charBody);
-                                console.log(accessToken);
-                                if (callback != null) callback(accessToken, charToken);
+                        if (tokenRes && (tokenRes.statusCode === 200 || tokenRes.statusCode === 201)) {
 
-                            }
-                        });
-                }
+                            accessToken = JSON.parse(tokenBody);
+
+                            request(
+                                {
+                                    url: 'https://login.eveonline.com/oauth/verify',
+                                    method: 'GET',
+                                    headers: {
+                                        'User-Agent': req.headers['user-agent'],
+                                        'Authorization': accessToken.token_type + ' ' + accessToken.access_token,
+                                        'Host': 'login.eveonline.com'
+                                    }
+                                }, function (charErr, charRes, charBody) {
+
+                                    if (charRes && (charRes.statusCode === 200 || charRes.statusCode === 201)) {
+
+                                        charToken = JSON.parse(charBody);
+                                        console.log(accessToken);
+                                        if (callback != null) callback(accessToken, charToken);
+
+                                        resolve({
+                                            access_token: accessToken,
+                                            character_token: charToken
+                                        });
+
+                                    }
+                                });
+                        }
+                    });
+                } 
+                
             });
-        
     }
 }
